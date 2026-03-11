@@ -1,0 +1,6 @@
+flask
+pandas
+numpy
+mysql-connector-python
+matplotlib
+seaborn
