@@ -185,6 +185,42 @@
                     </div>
                 </div>
 
+                <!-- DATE RANGE FILTER -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div
+                            class="filter-card py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="filter-icon">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Date Range Filter</h6>
+                                    <small class="text-muted">Filter analytics by specific period</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div class="date-input-group">
+                                    <label class="small text-muted mb-1 d-block">Start Date</label>
+                                    <input type="date" id="startDate"
+                                        class="form-control form-control-sm rounded-pill px-3">
+                                </div>
+                                <div class="date-separator mt-3">
+                                    <i class="fas fa-arrow-right text-muted"></i>
+                                </div>
+                                <div class="date-input-group">
+                                    <label class="small text-muted mb-1 d-block">End Date</label>
+                                    <input type="date" id="endDate"
+                                        class="form-control form-control-sm rounded-pill px-3">
+                                </div>
+                                <button id="resetDates" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mt-3">
+                                    <i class="fas fa-undo me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- CHARTS GRID -->
                 <div class="row g-4">
                     <!-- 1. Daily Trend -->
@@ -340,6 +376,45 @@
                                 <canvas id="correlationChart"></canvas>
                                 <div class="loader-overlay" id="loader-correlation">
                                     <div class="spinner-border text-info" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COUNTRY COMPARISON TOOL -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="chart-card">
+                            <div class="chart-header flex-wrap gap-3">
+                                <div>
+                                    <h5 class="chart-title mb-0">Country Comparison Tool</h5>
+                                    <small class="text-muted">Compare COVID tracks between two nations</small>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                    <select id="compareCountryA" class="form-select form-select-sm rounded-pill px-3"
+                                        style="min-width: 150px;">
+                                        <option value="" disabled selected>Country A</option>
+                                    </select>
+                                    <span class="fw-bold text-muted">vs</span>
+                                    <select id="compareCountryB" class="form-select form-select-sm rounded-pill px-3"
+                                        style="min-width: 150px;">
+                                        <option value="" disabled selected>Country B</option>
+                                    </select>
+                                    <button id="compareBtn" class="btn btn-primary btn-sm rounded-pill px-3">
+                                        <i class="fas fa-chart-line me-1"></i> Compare
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrapper" style="height: 400px;">
+                                <canvas id="comparisonChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-comparison">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                                <div id="comparisonPlaceholder"
+                                    class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+                                    <i class="fas fa-globe-americas fa-3x mb-3 opacity-25"></i>
+                                    <p>Select two countries and click "Compare" to visualize trends</p>
                                 </div>
                             </div>
                         </div>

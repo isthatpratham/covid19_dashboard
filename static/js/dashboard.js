@@ -17,11 +17,16 @@ const chartColors = {
 // Global State
 let dashboardData = {};
 let chartInstances = {};
+let selectedStartDate = '';
+let selectedEndDate = '';
+let currentCountry = 'All';
 const isDark = () => document.body.classList.contains('dark-mode');
 
 document.addEventListener("DOMContentLoaded", () => {
     initLayout();
     initTheme();
+    initDateFilter();
+    initComparisonTool();
     loadDashboardData();
 });
 
@@ -93,13 +98,16 @@ async function loadDashboardData() {
         { key: 'allCountries', url: '/api/all-countries-list' }
     ];
 
+    const queryString = getQueryString();
+
     try {
-        const results = await Promise.all(endpoints.map(e =>
-            fetch(e.url).then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status} on ${e.url}`);
+        const results = await Promise.all(endpoints.map(e => {
+            const url = e.key === 'allCountries' ? e.url : `${e.url}${queryString}`;
+            return fetch(url).then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
                 return res.json();
-            })
-        ));
+            });
+        }));
 
         results.forEach((data, index) => {
             dashboardData[endpoints[index].key] = data;
@@ -123,16 +131,146 @@ function hideLoaders() {
 
 function populateCountryFilter() {
     const filter = document.getElementById('countryFilter');
+    const compA = document.getElementById('compareCountryA');
+    const compB = document.getElementById('compareCountryB');
+
     dashboardData.allCountries.forEach(country => {
         const option = document.createElement('option');
         option.value = country;
         option.textContent = country;
         filter.appendChild(option);
+
+        // Populate comparison selectors
+        const optA = option.cloneNode(true);
+        const optB = option.cloneNode(true);
+        compA.appendChild(optA);
+        compB.appendChild(optB);
     });
 
     filter.addEventListener('change', (e) => {
-        updateDashboardForCountry(e.target.value);
+        currentCountry = e.target.value;
+        updateDashboard(currentCountry);
     });
+}
+
+function initDateFilter() {
+    const startInput = document.getElementById('startDate');
+    const endInput = document.getElementById('endDate');
+    const resetBtn = document.getElementById('resetDates');
+
+    const handleDateChange = () => {
+        selectedStartDate = startInput.value;
+        selectedEndDate = endInput.value;
+        updateDashboard(currentCountry);
+    };
+
+    startInput.addEventListener('change', handleDateChange);
+    endInput.addEventListener('change', handleDateChange);
+
+    resetBtn.addEventListener('click', () => {
+        startInput.value = '';
+        endInput.value = '';
+        selectedStartDate = '';
+        selectedEndDate = '';
+        updateDashboard(currentCountry);
+    });
+}
+
+function initComparisonTool() {
+    const compareBtn = document.getElementById('compareBtn');
+    compareBtn.addEventListener('click', () => {
+        const countryA = document.getElementById('compareCountryA').value;
+        const countryB = document.getElementById('compareCountryB').value;
+
+        if (!countryA || !countryB) {
+            alert("Please select two countries to compare.");
+            return;
+        }
+
+        if (countryA === countryB) {
+            alert("Please select two different countries.");
+            return;
+        }
+
+        compareCountries(countryA, countryB);
+    });
+}
+
+async function compareCountries(countryA, countryB) {
+    const loader = document.getElementById('loader-comparison');
+    const placeholder = document.getElementById('comparisonPlaceholder');
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+    loader.classList.remove('hidden');
+    placeholder.classList.add('hidden');
+
+    try {
+        const [dataA, dataB] = await Promise.all([
+            fetch(`/api/daily-trend?country=${encodeURIComponent(countryA)}`).then(res => res.json()),
+            fetch(`/api/daily-trend?country=${encodeURIComponent(countryB)}`).then(res => res.json())
+        ]);
+
+        if (chartInstances.comparison) {
+            chartInstances.comparison.destroy();
+        }
+
+        chartInstances.comparison = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dataA.dates, // Assuming both have similar date ranges for visualization
+                datasets: [
+                    {
+                        label: countryA,
+                        data: dataA.cases,
+                        borderColor: chartColors.primary,
+                        backgroundColor: chartColors.primaryGradient,
+                        fill: false, tension: 0.4, borderWidth: 3, pointRadius: 2
+                    },
+                    {
+                        label: countryB,
+                        data: dataB.cases,
+                        borderColor: chartColors.danger,
+                        backgroundColor: chartColors.dangerGradient,
+                        fill: false, tension: 0.4, borderWidth: 3, pointRadius: 2
+                    }
+                ]
+            },
+            options: {
+                ...getCommonOptions(`${countryA} vs ${countryB}`),
+                plugins: {
+                    ...getCommonOptions().plugins,
+                    tooltip: {
+                        ...getCommonOptions().plugins.tooltip,
+                        callbacks: {
+                            label: (context) => {
+                                const country = context.dataset.label;
+                                const cases = context.parsed.y;
+                                return `${country}: ${cases.toLocaleString()} cases`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("Comparison error:", error);
+        alert("Failed to fetch comparison data.");
+    } finally {
+        loader.classList.add('hidden');
+    }
+}
+
+function getQueryString(country = null) {
+    const params = new URLSearchParams();
+    const c = country || currentCountry;
+
+    if (c !== 'All') params.append('country', c);
+    if (selectedStartDate) params.append('start', selectedStartDate);
+    if (selectedEndDate) params.append('end', selectedEndDate);
+
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
 }
 
 function animateCounter(id, target) {
@@ -472,12 +610,11 @@ function renderRecoveryTrendChart() {
 }
 
 // --- GLOBAL FILTER LOGIC ---
-async function updateDashboardForCountry(country) {
+async function updateDashboard(country = 'All') {
     document.querySelectorAll('.loader-overlay').forEach(l => l.classList.remove('hidden'));
 
-    const query = country === 'All' ? '' : `?country=${encodeURIComponent(country)}`;
+    const query = getQueryString(country);
 
-    // We update all chart instances by refetching
     const endpoints = [
         { key: 'dailyTrend', url: `/api/daily-trend${query}` },
         { key: 'topCountries', url: `/api/top-countries${query}` },
@@ -494,7 +631,11 @@ async function updateDashboardForCountry(country) {
     ];
 
     try {
-        const results = await Promise.all(endpoints.map(e => fetch(e.url).then(res => res.json())));
+        const results = await Promise.all(endpoints.map(e => fetch(e.url).then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status} on ${e.url}`);
+            return res.json();
+        })));
+
         results.forEach((data, index) => {
             dashboardData[endpoints[index].key] = data;
         });
@@ -503,10 +644,12 @@ async function updateDashboardForCountry(country) {
 
         // Destroy and re-render charts for fresh animation
         Object.values(chartInstances).forEach(c => c.destroy());
+        chartInstances = {}; // Reset chart instances
         renderCharts();
         hideLoaders();
 
     } catch (e) {
-        console.error("Filter update error:", e);
+        console.error("Dashboard update error:", e);
+        hideLoaders();
     }
 }
