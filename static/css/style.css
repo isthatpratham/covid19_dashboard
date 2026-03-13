@@ -592,3 +592,25 @@ body.dark-mode .chart-header .form-select {
         margin-left: 0 !important;
     }
 }
+
+/* --- Bar Chart Race Specific Styles --- */
+#raceMonthDisplay {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-group .btn {
+    transition: all 0.2s ease;
+    border-width: 1px;
+}
+
+.btn-group .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chart-canvas-wrapper canvas#barRaceChart {
+    transition: none;
+    /* Chart.js handles its own animation */
+}

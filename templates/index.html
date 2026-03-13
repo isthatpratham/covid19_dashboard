@@ -420,6 +420,45 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- BAR CHART RACE -->
+                <div class="row mt-4 mb-5">
+                    <div class="col-12">
+                        <div class="chart-card">
+                            <div class="chart-header flex-wrap gap-3">
+                                <div>
+                                    <h5 class="chart-title mb-0">Top 10 Countries by Confirmed Cases Over Time</h5>
+                                    <small class="text-muted">Show how country rankings change over time</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 ms-auto">
+                                    <div id="raceMonthDisplay" class="badge bg-primary px-3 py-2 rounded-pill shadow-sm"
+                                        style="font-size: 0.9rem;">
+                                        <i class="fas fa-calendar-day me-2"></i>
+                                        <span id="raceMonth">Loading...</span>
+                                    </div>
+                                    <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                        <button id="racePlay" class="btn btn-primary btn-sm px-3" title="Play">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button id="racePause" class="btn btn-primary btn-sm px-3" title="Pause"
+                                            disabled>
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        <button id="raceRestart" class="btn btn-primary btn-sm px-3" title="Restart">
+                                            <i class="fas fa-redo-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrapper" style="height: 550px;">
+                                <canvas id="barRaceChart"></canvas>
+                                <div class="loader-overlay" id="loader-race">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <footer class="footer mt-auto py-3 text-center border-top bg-card text-muted small">

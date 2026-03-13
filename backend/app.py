@@ -154,6 +154,28 @@ def all_countries_list():
     if df is None: return jsonify([])
     return jsonify(sorted(df['country'].unique().tolist()))
 
+@app.route('/api/cases-ranking-race', methods=['GET'])
+def cases_ranking_race():
+    df = get_dataframe()
+    if df is None or df.empty:
+        return jsonify([])
+    
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+    df['month'] = df['date'].dt.strftime('%Y-%m')
+    
+    # Aggregate max cases per month and country (cumulative cases)
+    monthly_data = df.groupby(['month', 'country'])['confirmed_cases'].max().reset_index()
+    
+    # Get top 10 countries for each month
+    # We sort by month (asc) and cases (desc)
+    top_10_per_month = monthly_data.sort_values(['month', 'confirmed_cases'], ascending=[True, False])
+    top_10_per_month = top_10_per_month.groupby('month').head(10)
+    
+    # Convert to requested format
+    result = top_10_per_month.rename(columns={'confirmed_cases': 'cases'}).to_dict(orient='records')
+    return jsonify(result)
+
 @app.route('/')
 def index():
     return render_template('index.html')

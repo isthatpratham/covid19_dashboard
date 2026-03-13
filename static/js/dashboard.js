@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initComparisonTool();
     initExportTools();
     loadDashboardData();
+    initBarRace();
 });
 
 // --- LAYOUT & THEME LOGIC ---
@@ -707,4 +708,203 @@ function exportToCSV() {
     } finally {
         setTimeout(hideGlobalLoader, 500);
     }
+}
+
+// --- BAR CHART RACE LOGIC ---
+
+let raceInterval = null;
+let raceData = {};
+let raceMonths = [];
+let currentMonthIndex = 0;
+let isPlaying = false;
+let countryColorMap = {};
+
+async function initBarRace() {
+    const playBtn = document.getElementById('racePlay');
+    const pauseBtn = document.getElementById('racePause');
+    const restartBtn = document.getElementById('raceRestart');
+    const loader = document.getElementById('loader-race');
+
+    try {
+        const data = await fetch('/api/cases-ranking-race').then(res => {
+            if (!res.ok) throw new Error("API failure");
+            return res.json();
+        });
+
+        if (!data || data.length === 0) {
+            console.warn("No data for bar chart race");
+            return;
+        }
+
+        // Reset state
+        raceData = {};
+        raceMonths = [];
+        currentMonthIndex = 0;
+
+        // Group data by month
+        data.forEach(item => {
+            if (!raceData[item.month]) {
+                raceData[item.month] = [];
+                raceMonths.push(item.month);
+            }
+            raceData[item.month].push(item);
+        });
+
+        raceMonths.sort();
+        loader.classList.add('hidden');
+
+        renderRaceChart();
+        updateRace(0);
+
+        playBtn.addEventListener('click', startRace);
+        pauseBtn.addEventListener('click', stopRace);
+        restartBtn.addEventListener('click', restartRace);
+
+    } catch (error) {
+        console.error("Race chart initialization failed:", error);
+        loader.innerHTML = '<p class="text-danger small">Failed to load race data</p>';
+    }
+}
+
+function renderRaceChart() {
+    const ctx = document.getElementById('barRaceChart').getContext('2d');
+    const dark = isDark();
+
+    if (chartInstances.race) {
+        chartInstances.race.destroy();
+    }
+
+    chartInstances.race = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Confirmed Cases',
+                data: [],
+                backgroundColor: [],
+                borderRadius: 8,
+                borderWidth: 0,
+                barThickness: 30
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'linear'
+            },
+            layout: {
+                padding: { right: 50 }
+            },
+            scales: {
+                x: {
+                    grid: { color: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        color: dark ? '#94a3b8' : '#64748b',
+                        callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString()
+                    },
+                    beginAtZero: true
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: {
+                        color: dark ? '#f1f5f9' : '#1e293b',
+                        font: { weight: '600', size: 13 }
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: dark ? '#1e293b' : '#ffffff',
+                    titleColor: dark ? '#f1f5f9' : '#1e293b',
+                    bodyColor: dark ? '#94a3b8' : '#64748b',
+                    borderColor: dark ? '#334155' : '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label: (context) => {
+                            const month = raceMonths[currentMonthIndex];
+                            return [`Country: ${context.label}`, `Month: ${month}`, `Cases: ${context.parsed.x.toLocaleString()}`];
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateRace(index) {
+    if (index >= raceMonths.length) {
+        stopRace();
+        return;
+    }
+
+    currentMonthIndex = index;
+    const month = raceMonths[index];
+    const data = [...raceData[month]];
+
+    document.getElementById('raceMonth').textContent = month;
+
+    // Sort data for this month by cases descending
+    data.sort((a, b) => b.cases - a.cases);
+
+    const labels = data.map(d => d.country);
+    const values = data.map(d => d.cases);
+    const colors = labels.map(label => getCountryColor(label));
+
+    chartInstances.race.data.labels = labels;
+    chartInstances.race.data.datasets[0].data = values;
+    chartInstances.race.data.datasets[0].backgroundColor = colors;
+    chartInstances.race.update();
+}
+
+function startRace() {
+    if (isPlaying) return;
+    isPlaying = true;
+    document.getElementById('racePlay').disabled = true;
+    document.getElementById('racePause').disabled = false;
+
+    // Continue from where it stopped or restart if at end
+    if (currentMonthIndex >= raceMonths.length - 1) {
+        currentMonthIndex = 0;
+    }
+
+    raceInterval = setInterval(() => {
+        currentMonthIndex++;
+        if (currentMonthIndex >= raceMonths.length) {
+            stopRace();
+        } else {
+            updateRace(currentMonthIndex);
+        }
+    }, 1200);
+}
+
+function stopRace() {
+    isPlaying = false;
+    clearInterval(raceInterval);
+    document.getElementById('racePlay').disabled = false;
+    document.getElementById('racePause').disabled = true;
+}
+
+function restartRace() {
+    stopRace();
+    currentMonthIndex = 0;
+    updateRace(0);
+    startRace();
+}
+
+function getCountryColor(country) {
+    if (!countryColorMap[country]) {
+        const vibrantColors = [
+            '#4f46e5', '#ef4444', '#10b981', '#f59e0b', '#06b6d4',
+            '#8b5cf6', '#ec4899', '#f97316', '#0ea5e9', '#6366f1',
+            '#14b8a6', '#f43f5e', '#84cc16', '#a855f7', '#06b6d4'
+        ];
+        const index = Object.keys(countryColorMap).length % vibrantColors.length;
+        countryColorMap[country] = vibrantColors[index];
+    }
+    return countryColorMap[country];
 }
