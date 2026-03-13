@@ -130,17 +130,23 @@ function hideLoaders() {
     document.querySelectorAll('.loader-overlay').forEach(loader => loader.classList.add('hidden'));
 }
 
-// --- UI COMPONENTS ---
-
 function populateCountryFilter() {
     const filter = document.getElementById('countryFilter');
     const compA = document.getElementById('compareCountryA');
     const compB = document.getElementById('compareCountryB');
 
+    if (!filter || !compA || !compB) return;
+
+    // Clear existing options
+    filter.innerHTML = '<option value="All">🌍 All</option>';
+    compA.innerHTML = '<option value="" disabled selected>Country A</option>';
+    compB.innerHTML = '<option value="" disabled selected>Country B</option>';
+
     dashboardData.allCountries.forEach(country => {
+        const flag = getFlagEmoji(country);
         const option = document.createElement('option');
         option.value = country;
-        option.textContent = country;
+        option.textContent = `${flag} ${country}`;
         filter.appendChild(option);
 
         // Populate comparison selectors
@@ -150,10 +156,8 @@ function populateCountryFilter() {
         compB.appendChild(optB);
     });
 
-    filter.addEventListener('change', (e) => {
-        currentCountry = e.target.value;
-        updateDashboard(currentCountry);
-    });
+    // Initialize Tom Select for Comparison Tool and Global Filter
+    initTomSelects();
 }
 
 function initDateFilter() {
@@ -958,4 +962,85 @@ function renderInsights(insights) {
         `;
         list.appendChild(item);
     });
+}
+
+// --- COUNTRY SELECTOR ENHANCEMENTS ---
+
+function initTomSelects() {
+    const commonSettings = {
+        create: false,
+        sortField: {
+            field: "text",
+            direction: "asc"
+        },
+        maxOptions: 1000, // Ensure all countries are shown
+        allowEmptyOption: true,
+        plugins: ['clear_button'],
+        render: {
+            option: function (data, escape) {
+                const textParts = data.text.split(' ');
+                const flag = textParts[0];
+                const label = textParts.slice(1).join(' ');
+                return `<div><span class="country-flag">${flag}</span>${escape(label)}</div>`;
+            },
+            item: function (data, escape) {
+                const textParts = data.text.split(' ');
+                const flag = textParts[0];
+                const label = textParts.slice(1).join(' ');
+                return `<div><span class="country-flag">${flag}</span>${escape(label)}</div>`;
+            }
+        }
+    };
+
+    if (document.getElementById('compareCountryA')) {
+        new TomSelect("#compareCountryA", commonSettings);
+    }
+    if (document.getElementById('compareCountryB')) {
+        new TomSelect("#compareCountryB", commonSettings);
+    }
+
+    // Standardize Global Overview Dropdown
+    if (document.getElementById('countryFilter')) {
+        const countryFilter = new TomSelect("#countryFilter", {
+            ...commonSettings,
+            onChange: function (value) {
+                currentCountry = value || 'All';
+                updateDashboard(currentCountry);
+            }
+        });
+    }
+}
+
+function getFlagEmoji(country) {
+    const flagMap = {
+        'United States': '🇺🇸',
+        'India': '🇮🇳',
+        'Brazil': '🇧🇷',
+        'France': '🇫🇷',
+        'Germany': '🇩🇪',
+        'United Kingdom': '🇬🇧',
+        'Italy': '🇮🇹',
+        'Russia': '🇷🇺',
+        'Türkiye': '🇹🇷',
+        'Spain': '🇪🇸',
+        'Vietnam': '🇻🇳',
+        'Australia': '🇦🇺',
+        'Argentina': '🇦🇷',
+        'Japan': '🇯🇵',
+        'Mexico': '🇲🇽',
+        'Canada': '🇨🇦',
+        'China': '🇨🇳',
+        'South Africa': '🇿🇦',
+        'South Korea': '🇰🇷',
+        'Indonesia': '🇮🇩',
+        'Pakistan': '🇵🇰',
+        'Nigeria': '🇳🇬',
+        'Egypt': '🇪🇬',
+        'Thailand': '🇹🇭',
+        'Colombia': '🇨🇴',
+        'Poland': '🇵🇱',
+        'Ukraine': '🇺🇦'
+    };
+
+    return flagMap[country] || '🏳️'; // Default flag
 }

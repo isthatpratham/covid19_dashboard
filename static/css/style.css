@@ -674,3 +674,91 @@ body.dark-mode .insight-panel-card {
 body.dark-mode .insight-text {
     color: #e2e8f0;
 }
+
+/* --- Tom Select & Dropdown Standardization --- */
+.ts-wrapper.single .ts-control,
+.ts-dropdown,
+#countryFilter,
+.form-select {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e5e7eb !important;
+    border-radius: 8px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    transform: none !important;
+    /* Fix scaling bug */
+}
+
+.ts-wrapper.single .ts-control {
+    padding: 0.5rem 0.75rem !important;
+    box-shadow: none !important;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.ts-wrapper.single.focus .ts-control,
+#countryFilter:focus,
+.form-select:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.4) !important;
+    outline: none !important;
+    transform: none !important;
+}
+
+.ts-dropdown .dropdown-input {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e5e7eb !important;
+}
+
+.ts-dropdown .option {
+    padding: 0.6rem 0.75rem !important;
+    transition: background-color 0.2s ease;
+}
+
+.ts-dropdown .option.active {
+    background-color: #1f2937 !important;
+    color: #fff !important;
+}
+
+.ts-dropdown .option[aria-selected="true"] {
+    background-color: #4f46e5 !important;
+    color: #fff !important;
+}
+
+/* Custom Scrollbar for Tom Select & Dropdowns */
+.ts-dropdown .ts-dropdown-content::-webkit-scrollbar,
+#countryFilter::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ts-dropdown .ts-dropdown-content::-webkit-scrollbar-track,
+#countryFilter::-webkit-scrollbar-track {
+    background: #111827;
+}
+
+.ts-dropdown .ts-dropdown-content::-webkit-scrollbar-thumb,
+#countryFilter::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 3px;
+}
+
+.ts-dropdown .ts-dropdown-content::-webkit-scrollbar-thumb:hover,
+#countryFilter::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+}
+
+/* Flag Icon spacing */
+.country-flag {
+    margin-right: 10px;
+    font-size: 1.2em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Ensure no shift on dropdown open */
+.ts-wrapper {
+    width: 100% !important;
+    max-width: 100%;
+}
