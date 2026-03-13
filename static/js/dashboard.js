@@ -1,399 +1,512 @@
 // static/js/dashboard.js
 
-// Color palettes
-const colors = {
-    primary: 'rgba(13, 110, 253, 0.7)',
-    primaryBorder: 'rgba(13, 110, 253, 1)',
-    danger: 'rgba(220, 53, 69, 0.7)',
-    dangerBorder: 'rgba(220, 53, 69, 1)',
-    warning: 'rgba(255, 193, 7, 0.7)',
-    warningBorder: 'rgba(255, 193, 7, 1)',
-    success: 'rgba(25, 135, 84, 0.7)',
-    successBorder: 'rgba(25, 135, 84, 1)',
-    info: 'rgba(13, 202, 240, 0.7)',
-    infoBorder: 'rgba(13, 202, 240, 1)',
-    dark: 'rgba(108, 117, 125, 0.7)',
-    darkBorder: 'rgba(108, 117, 125, 1)'
+// Color Configuration for Charts
+const chartColors = {
+    primary: '#4f46e5',
+    secondary: '#64748b',
+    success: '#10b981',
+    danger: '#ef4444',
+    warning: '#f59e0b',
+    info: '#06b6d4',
+    primaryGradient: 'rgba(79, 70, 229, 0.2)',
+    secondaryGradient: 'rgba(100, 116, 139, 0.2)',
+    successGradient: 'rgba(16, 185, 129, 0.2)',
+    dangerGradient: 'rgba(239, 68, 68, 0.2)'
 };
 
-// Global Data Source Caches
-let globalData = {
-    topCountries: null,
-    dailyTrend: null,
-    monthlyTrend: null,
-    mortalityRanking: null,
-    recoveryTrend: null,
-    continentAnalysis: null
-};
+// Global State
+let dashboardData = {};
+let chartInstances = {};
+const isDark = () => document.body.classList.contains('dark-mode');
 
-// Chart Instances
-let charts = {
-    dailyTrend: null,
-    topCountries: null,
-    monthlyTrend: null,
-    mortality: null,
-    recovery: null,
-    continent: null
-};
-
-// FEATURE 5: Chart Animations
-const commonAnimation = {
-    duration: 1500,
-    easing: 'easeOutQuart'
-};
-
-Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-Chart.defaults.color = '#888';
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-Chart.defaults.plugins.tooltip.padding = 10;
-Chart.defaults.plugins.tooltip.cornerRadius = 6;
-
-document.addEventListener("DOMContentLoaded", function () {
-    initThemeToggle();
-    loadAllData();
+document.addEventListener("DOMContentLoaded", () => {
+    initLayout();
+    initTheme();
+    loadDashboardData();
 });
 
-// FEATURE 3: Dark Mode Toggle
-function initThemeToggle() {
-    const btn = document.getElementById('themeToggle');
-    btn.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
+// --- LAYOUT & THEME LOGIC ---
 
-        // Update Button UI
-        btn.innerHTML = isDark ? '<i class="fas fa-sun me-2"></i>Light Mode' : '<i class="fas fa-moon me-2"></i>Dark Mode';
-        btn.classList.toggle('btn-outline-light', !isDark);
-        btn.classList.toggle('btn-light', isDark);
+function initLayout() {
+    const sidebar = document.getElementById('sidebar');
+    const collapseBtn = document.getElementById('collapseSidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
 
-        // Update charts color scheme dynamically
-        Chart.defaults.color = isDark ? '#b0b0b0' : '#888';
-        updateAllCharts();
+    const toggleSidebar = () => {
+        sidebar.classList.toggle('collapsed');
+    };
+
+    collapseBtn.addEventListener('click', toggleSidebar);
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('show');
+    });
+
+    // Close sidebar on mobile when clicking outside
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth < 768 && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target) && sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
     });
 }
 
-// FEATURE 6: Loading Indicators
-function showChart(canvasId, loaderId) {
-    document.getElementById(loaderId).classList.add('d-none');
-    document.getElementById(canvasId).classList.remove('d-none');
+function initTheme() {
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const dark = isDark();
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+        themeToggle.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+
+        // Refresh charts for theme change
+        Object.values(chartInstances).forEach(chart => {
+            chart.options.scales.x.grid.color = dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            chart.options.scales.y.grid.color = dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            chart.options.plugins.legend.labels.color = dark ? '#94a3b8' : '#1e293b';
+            chart.update();
+        });
+    });
 }
 
-// Fetch Master Function - Fetches all API data simultaneously
-function loadAllData() {
-    Promise.all([
-        fetch('/api/daily-trend').then(res => res.json()),
-        fetch('/api/top-countries').then(res => res.json()),
-        fetch('/api/monthly-trend').then(res => res.json()),
-        fetch('/api/mortality-ranking').then(res => res.json()),
-        fetch('/api/recovery-trend').then(res => res.json()),
-        fetch('/api/continent-analysis').then(res => res.json())
-    ]).then(results => {
-        globalData.dailyTrend = results[0];
-        globalData.topCountries = results[1];
-        globalData.monthlyTrend = results[2];
-        globalData.mortalityRanking = results[3];
-        globalData.recoveryTrend = results[4];
-        globalData.continentAnalysis = results[5];
+// --- DATA FETCHING ---
 
-        // Init KPIs
-        renderKPIs();
+async function loadDashboardData() {
+    const endpoints = [
+        { key: 'dailyTrend', url: '/api/daily-trend' },
+        { key: 'topCountries', url: '/api/top-countries' },
+        { key: 'monthlyTrend', url: '/api/monthly-trend' },
+        { key: 'mortalityRanking', url: '/api/mortality-ranking' },
+        { key: 'recoveryTrend', url: '/api/recovery-trend' },
+        { key: 'continentAnalysis', url: '/api/continent-analysis' },
+        { key: 'dailyDeaths', url: '/api/daily-deaths' },
+        { key: 'countryDeaths', url: '/api/country-deaths' },
+        { key: 'recoveryRate', url: '/api/recovery-rate' },
+        { key: 'casesVsDeaths', url: '/api/cases-vs-deaths' },
+        { key: 'casesVsDeathsTrend', url: '/api/cases-vs-deaths-trend' },
+        { key: 'growthRate', url: '/api/growth-rate' },
+        { key: 'allCountries', url: '/api/all-countries-list' }
+    ];
 
-        // Init Filter Menu
+    try {
+        const results = await Promise.all(endpoints.map(e =>
+            fetch(e.url).then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status} on ${e.url}`);
+                return res.json();
+            })
+        ));
+
+        results.forEach((data, index) => {
+            dashboardData[endpoints[index].key] = data;
+        });
+
         populateCountryFilter();
+        renderKPIs();
+        renderCharts();
+        hideLoaders();
 
-        // Render Initial Global Charts
-        renderAllCharts("All");
-
-    }).catch(err => console.error("Error loading API data:", err));
+    } catch (error) {
+        console.error("Critical error loading dashboard data:", error);
+    }
 }
 
-// FEATURE 1: KPI Summary Cards
-function renderKPIs() {
-    // Total Confirmed Cases
-    const cases = globalData.dailyTrend.cases;
-    const totalConfirmed = cases[cases.length - 1] || 0;
-    document.getElementById('kpi-confirmed').innerHTML = totalConfirmed.toLocaleString();
-
-    // Total Recovered Cases
-    const recovered = globalData.recoveryTrend.recovered;
-    // Find the max value (as JHU dataset stopped recording recoveries later in pandemic causing trailing 0s)
-    const totalRecovered = Math.max(...recovered) || 0;
-    document.getElementById('kpi-recovered').innerHTML = totalRecovered.toLocaleString();
-
-    // Average Global Mortality Rate
-    const mortRates = globalData.mortalityRanking.mortality_rates;
-    const avgMort = mortRates.reduce((a, b) => a + b, 0) / mortRates.length;
-    document.getElementById('kpi-mortality').innerHTML = avgMort.toFixed(2) + '%';
-
-    // Extrapolate Total Deaths based on available backend data
-    const totalDeaths = Math.round(totalConfirmed * (avgMort / 100));
-    document.getElementById('kpi-deaths').innerHTML = totalDeaths.toLocaleString();
+function hideLoaders() {
+    document.querySelectorAll('.loader-overlay').forEach(loader => loader.classList.add('hidden'));
 }
 
-// FEATURE 2: Country Search Filter
+// --- UI COMPONENTS ---
+
 function populateCountryFilter() {
     const filter = document.getElementById('countryFilter');
-    const countries = globalData.topCountries.countries;
-
-    countries.forEach(country => {
-        let opt = document.createElement('option');
-        opt.value = country;
-        opt.innerHTML = country;
-        filter.appendChild(opt);
+    dashboardData.allCountries.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country;
+        option.textContent = country;
+        filter.appendChild(option);
     });
 
     filter.addEventListener('change', (e) => {
-        renderAllCharts(e.target.value);
+        updateDashboardForCountry(e.target.value);
     });
 }
 
-function updateAllCharts() {
-    const activeCountry = document.getElementById('countryFilter').value;
-    renderAllCharts(activeCountry);
+function animateCounter(id, target) {
+    const el = document.getElementById(id);
+    const duration = 1500;
+    const start = 0;
+    const range = target - start;
+    let startTime = null;
+
+    const step = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        const value = Math.floor(progress * range + start);
+        el.textContent = value.toLocaleString();
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            el.textContent = target.toLocaleString();
+        }
+    };
+    window.requestAnimationFrame(step);
 }
 
-// Chart Rendering Logic
-function renderAllCharts(filterCountry) {
-    renderDailyTrend(filterCountry);
-    renderTopCountries(filterCountry);
-    renderMonthlyTrend(filterCountry);
-    renderMortalityRanking(filterCountry);
-    renderRecoveryTrend(filterCountry);
-    renderContinentAnalysis(filterCountry);
+function renderKPIs() {
+    const cases = dashboardData.dailyTrend.cases;
+    const recovered = dashboardData.recoveryTrend.recovered;
+    const deaths = dashboardData.dailyDeaths.deaths;
+
+    const totalConfirmed = cases[cases.length - 1] || 0;
+    const totalRecovered = Math.max(...recovered) || 0;
+    const totalDeaths = deaths[deaths.length - 1] || 0;
+    const mortalityRate = ((totalDeaths / totalConfirmed) * 100).toFixed(2);
+
+    // Get Top Affected Country
+    const countries = dashboardData.topCountries.countries;
+    const topCountry = countries[0] || 'N/A';
+
+    animateCounter('kpi-confirmed', totalConfirmed);
+    animateCounter('kpi-recovered', totalRecovered);
+    animateCounter('kpi-deaths', totalDeaths);
+    document.getElementById('kpi-mortality').textContent = mortalityRate + '%';
+    document.getElementById('kpi-top-country').textContent = topCountry;
 }
 
-// Helper to scale global time-series down proportionally for Country Filter fake-out
-function getCountryScale(country) {
-    if (country === "All") return 1;
-    let idx = globalData.topCountries.countries.indexOf(country);
-    if (idx === -1) return 0.05; // Fallback for countries not in top 10
+// --- CHARTS ENGINE ---
 
-    let countryCases = globalData.topCountries.cases[idx];
-    let casesHistory = globalData.dailyTrend.cases;
-    let globalTotal = casesHistory[casesHistory.length - 1] || 1;
-    return countryCases / globalTotal;
+function getCommonOptions(title = '') {
+    const dark = isDark();
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: title !== '',
+                position: 'bottom',
+                labels: { color: dark ? '#94a3b8' : '#1e293b', font: { family: 'Inter', size: 12 }, padding: 20 }
+            },
+            tooltip: {
+                backgroundColor: dark ? '#1e293b' : '#ffffff',
+                titleColor: dark ? '#f1f5f9' : '#1e293b',
+                bodyColor: dark ? '#94a3b8' : '#64748b',
+                borderColor: dark ? '#334155' : '#e2e8f0',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 8,
+                displayColors: true
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                ticks: { color: dark ? '#94a3b8' : '#64748b' }
+            },
+            y: {
+                grid: { color: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                ticks: {
+                    color: dark ? '#94a3b8' : '#64748b',
+                    callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString()
+                }
+            }
+        },
+        animation: { duration: 2000, easing: 'easeOutQuart' }
+    };
 }
 
-// 1. Daily Cases Trend Chart
-function renderDailyTrend(country) {
-    const data = globalData.dailyTrend;
-    const scale = getCountryScale(country);
-    const scaledCases = data.cases.map(v => Math.round(v * scale));
+function renderCharts() {
+    // 1. Cases vs Deaths Trend
+    renderCasesVsDeaths();
 
-    if (charts.dailyTrend) charts.dailyTrend.destroy();
-    showChart('dailyTrendChart', 'loader-daily');
-    const ctx = document.getElementById('dailyTrendChart').getContext('2d');
+    // 2. Continent Analysis
+    renderContinent();
 
-    charts.dailyTrend = new Chart(ctx, {
+    // 3. Top Affected Countries
+    renderTopCountries();
+
+    // 4. Country Deaths
+    renderCountryDeaths();
+
+    // 5. Monthly Trend
+    renderMonthlyTrend();
+
+    // 6. Recovery Rate
+    renderRecoveryRate();
+
+    // 7. Growth Rate
+    renderGrowthRate();
+
+    // 8. Mortality Ranking
+    renderMortalityRanking();
+
+    // 9. Recovery Trend
+    renderRecoveryTrendChart();
+
+    // 10. Cases vs Deaths Correlation
+    renderCorrelationChart();
+}
+
+function renderCorrelationChart() {
+    const ctx = document.getElementById('correlationChart').getContext('2d');
+    const data = dashboardData.casesVsDeaths;
+
+    chartInstances.correlation = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Country Correlation',
+                data: data.map(d => ({ x: d.cases, y: d.deaths, country: d.country })),
+                backgroundColor: chartColors.info,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            ...getCommonOptions('Correlation'),
+            plugins: {
+                ...getCommonOptions().plugins,
+                tooltip: {
+                    ...getCommonOptions().plugins.tooltip,
+                    callbacks: {
+                        label: (ctx) => {
+                            const p = ctx.raw;
+                            return [`${p.country}`, `Cases: ${p.x.toLocaleString()}`, `Deaths: ${p.y.toLocaleString()}`];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ...getCommonOptions().scales.x,
+                    title: { display: true, text: 'Confirmed Cases', color: isDark() ? '#94a3b8' : '#64748b' }
+                },
+                y: {
+                    ...getCommonOptions().scales.y,
+                    title: { display: true, text: 'Total Deaths', color: isDark() ? '#94a3b8' : '#64748b' }
+                }
+            }
+        }
+    });
+}
+function renderCasesVsDeaths() {
+    const ctx = document.getElementById('casesVsDeathsChart').getContext('2d');
+    const data = dashboardData.casesVsDeathsTrend;
+    chartInstances.cvd = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.dates,
+            datasets: [
+                {
+                    label: 'Confirmed Cases',
+                    data: data.cases,
+                    borderColor: chartColors.primary,
+                    backgroundColor: chartColors.primaryGradient,
+                    fill: true, tension: 0.4, borderWidth: 3, pointRadius: 0
+                },
+                {
+                    label: 'Total Deaths',
+                    data: data.deaths,
+                    borderColor: chartColors.danger,
+                    backgroundColor: chartColors.dangerGradient,
+                    fill: true, tension: 0.4, borderWidth: 3, pointRadius: 0
+                }
+            ]
+        },
+        options: getCommonOptions('Trend')
+    });
+}
+
+function renderContinent() {
+    const ctx = document.getElementById('continentChart').getContext('2d');
+    const data = dashboardData.continentAnalysis;
+    chartInstances.continent = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.continent,
+            datasets: [{
+                data: data.confirmed_cases,
+                backgroundColor: [chartColors.primary, chartColors.success, chartColors.warning, chartColors.danger, chartColors.info, chartColors.secondary],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...getCommonOptions(),
+            cutout: '70%',
+            plugins: { ...getCommonOptions().plugins, legend: { position: 'bottom' } }
+        }
+    });
+}
+
+function renderTopCountries() {
+    const ctx = document.getElementById('topCountriesChart').getContext('2d');
+    const data = dashboardData.topCountries;
+    chartInstances.top = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.countries,
+            datasets: [{
+                label: 'Cases',
+                data: data.cases,
+                backgroundColor: chartColors.danger,
+                borderRadius: 8
+            }]
+        },
+        options: getCommonOptions()
+    });
+}
+
+function renderCountryDeaths() {
+    const ctx = document.getElementById('countryDeathsChart').getContext('2d');
+    const data = dashboardData.countryDeaths;
+    chartInstances.deaths = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.countries,
+            datasets: [{
+                label: 'Deaths',
+                data: data.deaths,
+                backgroundColor: chartColors.secondary,
+                borderRadius: 8
+            }]
+        },
+        options: { ...getCommonOptions(), indexAxis: 'y' }
+    });
+}
+
+function renderMonthlyTrend() {
+    const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+    const data = dashboardData.monthlyTrend;
+    chartInstances.monthly = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.months,
+            datasets: [{
+                label: 'Monthly Growth',
+                data: data.cases,
+                borderColor: chartColors.warning,
+                tension: 0.4, pointRadius: 4, borderWidth: 3
+            }]
+        },
+        options: getCommonOptions()
+    });
+}
+
+function renderRecoveryRate() {
+    const ctx = document.getElementById('recoveryRateChart').getContext('2d');
+    const data = dashboardData.recoveryRate;
+    chartInstances.recoveryRate = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.countries,
+            datasets: [{
+                label: 'Recovery %',
+                data: data.recovery_rates,
+                backgroundColor: chartColors.success,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            ...getCommonOptions(),
+            scales: { ...getCommonOptions().scales, y: { ...getCommonOptions().scales.y, ticks: { callback: v => v + '%' } } }
+        }
+    });
+}
+
+function renderGrowthRate() {
+    const ctx = document.getElementById('growthRateChart').getContext('2d');
+    const data = dashboardData.growthRate;
+    chartInstances.growth = new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.dates,
             datasets: [{
-                label: 'Confirmed Cases',
-                data: scaledCases,
-                borderColor: colors.primaryBorder,
-                backgroundColor: 'rgba(13, 110, 253, 0.15)',
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                fill: true,
-                tension: 0.3
+                label: 'Daily New Cases',
+                data: data.growth,
+                borderColor: chartColors.info,
+                borderWidth: 2, pointRadius: 0, fill: false
             }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: commonAnimation, // Feature 5
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
-                y: { beginAtZero: true, ticks: { callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString() } }
-            }
-        }
+        options: getCommonOptions()
     });
 }
 
-// 2. Top Affected Countries Chart
-function renderTopCountries(country) {
-    let labels = globalData.topCountries.countries;
-    let vals = globalData.topCountries.cases;
-
-    // Feature 2 Output
-    if (country !== "All") {
-        const idx = labels.indexOf(country);
-        if (idx !== -1) {
-            labels = [labels[idx]];
-            vals = [vals[idx]];
-        }
-    }
-
-    if (charts.topCountries) charts.topCountries.destroy();
-    showChart('topCountriesChart', 'loader-top');
-    const ctx = document.getElementById('topCountriesChart').getContext('2d');
-
-    charts.topCountries = new Chart(ctx, {
+function renderMortalityRanking() {
+    const ctx = document.getElementById('mortalityRankingChart').getContext('2d');
+    const data = dashboardData.mortalityRanking;
+    chartInstances.mortalityRank = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: data.countries,
             datasets: [{
-                label: 'Total Cases',
-                data: vals,
-                backgroundColor: colors.danger,
-                borderColor: colors.dangerBorder,
-                borderWidth: 1, borderRadius: 6
+                label: 'Fatality %',
+                data: data.mortality_rates,
+                backgroundColor: '#334155',
+                borderRadius: 6
             }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: commonAnimation, // Feature 5
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true, ticks: { callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString() } }
-            }
-        }
+        options: getCommonOptions()
     });
 }
 
-// 3. Monthly Trend Chart
-function renderMonthlyTrend(country) {
-    const scale = getCountryScale(country);
-    const scaledData = globalData.monthlyTrend.cases.map(v => Math.round(v * scale));
-
-    if (charts.monthlyTrend) charts.monthlyTrend.destroy();
-    showChart('monthlyTrendChart', 'loader-monthly');
-    const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
-
-    charts.monthlyTrend = new Chart(ctx, {
+function renderRecoveryTrendChart() {
+    const ctx = document.getElementById('recoveryTrendChart').getContext('2d');
+    const data = dashboardData.recoveryTrend;
+    chartInstances.recoveryTrend = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: globalData.monthlyTrend.months,
+            labels: data.dates,
             datasets: [{
-                label: 'Cases by Month',
-                data: scaledData,
-                borderColor: colors.warningBorder,
-                backgroundColor: 'rgba(255, 193, 7, 0.15)',
-                borderWidth: 3, pointRadius: 4, pointHoverRadius: 6,
-                fill: true, tension: 0.4
+                label: 'Recoveries',
+                data: data.recovered,
+                borderColor: chartColors.success,
+                backgroundColor: chartColors.successGradient,
+                fill: true, tension: 0.4, pointRadius: 0
             }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: commonAnimation, // Feature 5
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true, ticks: { callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString() } }
-            }
-        }
+        options: getCommonOptions()
     });
 }
 
-// 4. Mortality Rate Ranking Chart
-function renderMortalityRanking(country) {
-    let labels = globalData.mortalityRanking.countries;
-    let vals = globalData.mortalityRanking.mortality_rates;
+// --- GLOBAL FILTER LOGIC ---
+async function updateDashboardForCountry(country) {
+    document.querySelectorAll('.loader-overlay').forEach(l => l.classList.remove('hidden'));
 
-    // Feature 2 Output
-    if (country !== "All") {
-        const idx = labels.indexOf(country);
-        if (idx !== -1) {
-            labels = [labels[idx]];
-            vals = [vals[idx]];
-        }
+    const query = country === 'All' ? '' : `?country=${encodeURIComponent(country)}`;
+
+    // We update all chart instances by refetching
+    const endpoints = [
+        { key: 'dailyTrend', url: `/api/daily-trend${query}` },
+        { key: 'topCountries', url: `/api/top-countries${query}` },
+        { key: 'monthlyTrend', url: `/api/monthly-trend${query}` },
+        { key: 'mortalityRanking', url: `/api/mortality-ranking${query}` },
+        { key: 'recoveryTrend', url: `/api/recovery-trend${query}` },
+        { key: 'continentAnalysis', url: `/api/continent-analysis${query}` },
+        { key: 'dailyDeaths', url: `/api/daily-deaths${query}` },
+        { key: 'countryDeaths', url: `/api/country-deaths${query}` },
+        { key: 'recoveryRate', url: `/api/recovery-rate${query}` },
+        { key: 'casesVsDeaths', url: `/api/cases-vs-deaths${query}` },
+        { key: 'casesVsDeathsTrend', url: `/api/cases-vs-deaths-trend${query}` },
+        { key: 'growthRate', url: `/api/growth-rate${query}` }
+    ];
+
+    try {
+        const results = await Promise.all(endpoints.map(e => fetch(e.url).then(res => res.json())));
+        results.forEach((data, index) => {
+            dashboardData[endpoints[index].key] = data;
+        });
+
+        renderKPIs();
+
+        // Destroy and re-render charts for fresh animation
+        Object.values(chartInstances).forEach(c => c.destroy());
+        renderCharts();
+        hideLoaders();
+
+    } catch (e) {
+        console.error("Filter update error:", e);
     }
-
-    if (charts.mortality) charts.mortality.destroy();
-    showChart('mortalityChart', 'loader-mortality');
-    const ctx = document.getElementById('mortalityChart').getContext('2d');
-
-    charts.mortality = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Mortality Rate (%)',
-                data: vals,
-                backgroundColor: colors.dark,
-                borderColor: colors.darkBorder,
-                borderWidth: 1, borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            indexAxis: 'y',
-            animation: commonAnimation, // Feature 5
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x + '%' } } },
-            scales: {
-                x: { beginAtZero: true },
-                y: { grid: { display: false } }
-            }
-        }
-    });
-}
-
-// 5. Recovery Trend Chart
-function renderRecoveryTrend(country) {
-    const scale = getCountryScale(country);
-    const scaledData = globalData.recoveryTrend.recovered.map(v => Math.round(v * scale));
-
-    if (charts.recovery) charts.recovery.destroy();
-    showChart('recoveryChart', 'loader-recovery');
-    const ctx = document.getElementById('recoveryChart').getContext('2d');
-
-    charts.recovery = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: globalData.recoveryTrend.dates,
-            datasets: [{
-                label: 'Recovered Cases',
-                data: scaledData,
-                borderColor: colors.successBorder,
-                backgroundColor: 'rgba(25, 135, 84, 0.15)',
-                borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
-                fill: true, tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: commonAnimation, // Feature 5
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
-                y: { beginAtZero: true, ticks: { callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString() } }
-            }
-        }
-    });
-}
-
-// 6. Continent Analysis Chart
-function renderContinentAnalysis(country) {
-    let data = globalData.continentAnalysis.confirmed_cases;
-    let labels = globalData.continentAnalysis.continent;
-    const pieColors = [colors.primary, colors.danger, colors.warning, colors.success, colors.info, colors.dark];
-
-    if (charts.continent) charts.continent.destroy();
-    showChart('continentChart', 'loader-continent');
-    const ctx = document.getElementById('continentChart').getContext('2d');
-
-    charts.continent = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: pieColors,
-                borderWidth: 2,
-                borderColor: document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#ffffff',
-                hoverOffset: 6
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: Object.assign({}, commonAnimation, { animateScale: true, animateRotate: true }), // Feature 5
-            plugins: {
-                legend: { position: 'right', labels: { boxWidth: 12, padding: 15 } },
-                tooltip: { callbacks: { label: c => ` ${c.label}: ` + (c.raw >= 1000000 ? (c.raw / 1000000).toFixed(1) + 'M' : c.raw.toLocaleString()) } }
-            },
-            cutout: '65%'
-        }
-    });
 }

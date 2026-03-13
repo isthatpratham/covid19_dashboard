@@ -116,6 +116,15 @@ def recovery_rate():
 
 @app.route('/api/cases-vs-deaths', methods=['GET'])
 def cases_vs_deaths():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    grouped = df.groupby('country').agg({'confirmed_cases': 'max', 'deaths': 'max'}).reset_index()
+    grouped = grouped.fillna(0)
+    top_50 = grouped.sort_values(by='confirmed_cases', ascending=False).head(50)
+    return jsonify(top_50.rename(columns={'country': 'country', 'confirmed_cases': 'cases', 'deaths': 'deaths'}).to_dict(orient='records'))
+
+@app.route('/api/cases-vs-deaths-trend', methods=['GET'])
+def cases_vs_deaths_trend():
     df = get_filtered_dataframe()
     trend = df.groupby('date').agg({'confirmed_cases': 'sum', 'deaths': 'sum'}).reset_index().sort_values('date')
     return jsonify({

@@ -77,7 +77,7 @@ def start_server():
     try:
         from backend.app import app
         # Run the server
-        app.run(debug=True, use_reloader=False) # disabled reloader so it doesn't run checks twice
+        app.run(debug=True, use_reloader=True) # enabled reloader for development
     except Exception as e:
         print_error(f"Failed to start Flask server: {e}")
 
