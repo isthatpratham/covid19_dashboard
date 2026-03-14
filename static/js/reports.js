@@ -92,10 +92,6 @@ function renderSummary(data) {
 }
 
 function initActions() {
-    document.getElementById('generatePDF').addEventListener('click', () => {
-        window.print();
-    });
-
     document.getElementById('copySummary').addEventListener('click', async () => {
         const reportText = document.getElementById('reportContent').innerText;
         try {
