@@ -253,25 +253,6 @@ http://127.0.0.1:5000
 • User authentication and multi-tenant dashboards
 
 ---
-# Project Screenshots
-
-
-## Dashboard
-![Dashboard](screenshots/dashboard.png)
-
-## Global Overview
-![Global Overview](screenshots/global_overview.png)
-
-## Country Analytics
-![Country Analytics](screenshots/country_analytics.png)
-
-## Trends Analysis
-![Trends](screenshots/trends_page.png)
-
-## Data Explorer
-![Data Explorer](screenshots/data_explorer.png)
-
----
 
 
 # Author
