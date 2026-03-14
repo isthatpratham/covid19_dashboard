@@ -224,6 +224,53 @@ def key_insights():
     
     return jsonify(insights)
 
+@app.route('/api/custom-analysis', methods=['GET'])
+def custom_analysis():
+    df = get_dataframe()
+    if df is None or df.empty:
+        return jsonify([])
+    
+    country = request.args.get('country', 'All')
+    metric = request.args.get('metric', 'confirmed_cases')
+    aggregation = request.args.get('aggregation', 'daily')
+    
+    # Map valid metrics to dataframe columns
+    metric_map = {
+        'Confirmed Cases': 'confirmed_cases',
+        'Deaths': 'deaths',
+        'Recovered': 'recovered'
+    }
+    
+    # Try different key formats (exact match, lowercase, or fallback)
+    col_name = metric_map.get(metric, metric_map.get(metric.title(), metric.lower().replace(' ', '_')))
+    
+    # Ensure column exists
+    if col_name not in df.columns:
+        # Default to confirmed cases if metric is invalid
+        col_name = 'confirmed_cases'
+    
+    # Filter by country if not 'All'
+    filtered_df = df if country == 'All' else df[df['country'] == country]
+    
+    if filtered_df.empty:
+        return jsonify([])
+    
+    filtered_df = filtered_df.copy()
+    
+    if aggregation == 'monthly':
+        filtered_df['date'] = pd.to_datetime(filtered_df['date'])
+        filtered_df['period'] = filtered_df['date'].dt.strftime('%Y-%m')
+        # For monthly we usually sum the daily values if it's daily data, or if it's cumulative take max
+        # The existing endpoints use sum for daily/monthly trends in this app, so doing sum
+        grouped = filtered_df.groupby('period')[col_name].max() if 'cumulative' in col_name else filtered_df.groupby('period')[col_name].sum()
+        # If it's already cumulative, sum might be wrong, but in previous code `monthly_trend` used `sum()`
+        result = grouped.reset_index().rename(columns={'period': 'date', col_name: 'value'}).sort_values('date')
+    else:  # daily
+        grouped = filtered_df.groupby('date')[col_name].sum().reset_index()
+        result = grouped.rename(columns={col_name: 'value'}).sort_values('date')
+        
+    return jsonify(result.to_dict(orient='records'))
+
 @app.route('/')
 def index():
     return render_template('index.html')

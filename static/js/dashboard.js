@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboardData();
     initBarRace();
     initInsights();
+    initDataExplorer();
 });
 
 // --- LAYOUT & THEME LOGIC ---
@@ -142,6 +143,11 @@ function populateCountryFilter() {
     compA.innerHTML = '<option value="" disabled selected>Country A</option>';
     compB.innerHTML = '<option value="" disabled selected>Country B</option>';
 
+    const expCountry = document.getElementById('explorerCountry');
+    if (expCountry) {
+        expCountry.innerHTML = '<option value="All" selected>🌍 Global Overview</option>';
+    }
+
     dashboardData.allCountries.forEach(country => {
         const flag = getFlagEmoji(country);
         const option = document.createElement('option');
@@ -154,6 +160,11 @@ function populateCountryFilter() {
         const optB = option.cloneNode(true);
         compA.appendChild(optA);
         compB.appendChild(optB);
+
+        if (expCountry) {
+            const optExp = option.cloneNode(true);
+            expCountry.appendChild(optExp);
+        }
     });
 
     // Initialize Tom Select for Comparison Tool and Global Filter
@@ -393,6 +404,103 @@ function renderCharts() {
 
     // 10. Cases vs Deaths Correlation
     renderCorrelationChart();
+}
+
+// --- DATA EXPLORER LOGIC ---
+
+function initDataExplorer() {
+    const explorerBtn = document.getElementById('explorerBtn');
+    if (explorerBtn) {
+        explorerBtn.addEventListener('click', runDataExplorerAnalysis);
+    }
+}
+
+async function runDataExplorerAnalysis() {
+    const country = document.getElementById('explorerCountry').value;
+    const metric = document.getElementById('explorerMetric').value;
+    const aggregation = document.getElementById('explorerAggregation').value;
+    const chartType = document.getElementById('explorerChartType').value;
+
+    const loader = document.getElementById('loader-explorer');
+    const placeholder = document.getElementById('explorerPlaceholder');
+    const ctx = document.getElementById('explorerChart').getContext('2d');
+
+    loader.classList.remove('hidden');
+    placeholder.classList.add('hidden');
+
+    try {
+        const queryParams = new URLSearchParams();
+        if (country !== 'All') queryParams.append('country', country);
+        queryParams.append('metric', metric);
+        queryParams.append('aggregation', aggregation);
+
+        // Respect global date filters if set
+        if (selectedStartDate) queryParams.append('start', selectedStartDate);
+        if (selectedEndDate) queryParams.append('end', selectedEndDate);
+
+        const url = `/api/custom-analysis?${queryParams.toString()}`;
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+            alert('No data found for the selected criteria.');
+            loader.classList.add('hidden');
+            return;
+        }
+
+        renderExplorerChart(ctx, data, metric, chartType, country);
+
+    } catch (error) {
+        console.error("Explorer error:", error);
+        alert("Failed to fetch custom analysis data.");
+    } finally {
+        loader.classList.add('hidden');
+    }
+}
+
+function renderExplorerChart(ctx, data, metric, chartType, country) {
+    if (chartInstances.explorer) {
+        chartInstances.explorer.destroy();
+    }
+
+    const labels = data.map(d => d.date);
+    const values = data.map(d => d.value);
+
+    // Choose color based on metric
+    let borderColor = chartColors.primary;
+    let bgColor = chartColors.primaryGradient;
+
+    if (metric.toLowerCase().includes('death')) {
+        borderColor = chartColors.danger;
+        bgColor = chartColors.dangerGradient;
+    } else if (metric.toLowerCase().includes('recover')) {
+        borderColor = chartColors.success;
+        bgColor = chartColors.successGradient;
+    }
+
+    const titleStr = `${metric} - ${country === 'All' ? 'Global' : country}`;
+
+    chartInstances.explorer = new Chart(ctx, {
+        type: chartType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: metric,
+                data: values,
+                borderColor: borderColor,
+                backgroundColor: chartType === 'bar' ? borderColor : bgColor,
+                fill: chartType === 'line',
+                tension: 0.4,
+                borderWidth: chartType === 'line' ? 3 : 0,
+                borderRadius: chartType === 'bar' ? 6 : 0,
+                pointRadius: chartType === 'line' ? 0 : 3
+            }]
+        },
+        options: getCommonOptions(titleStr)
+    });
 }
 
 function renderCorrelationChart() {
@@ -1008,6 +1116,27 @@ function initTomSelects() {
                 updateDashboard(currentCountry);
             }
         });
+    }
+
+    // Standardize Data Explorer Dropdowns
+    if (document.getElementById('explorerCountry')) {
+        new TomSelect("#explorerCountry", commonSettings);
+    }
+
+    const simpleSettings = {
+        create: false,
+        controlInput: null, // Disable typing if we just want a standard dropdown
+        plugins: ['dropdown_input'] // Optional, depending on if we want search
+    };
+
+    if (document.getElementById('explorerMetric')) {
+        new TomSelect("#explorerMetric", simpleSettings);
+    }
+    if (document.getElementById('explorerAggregation')) {
+        new TomSelect("#explorerAggregation", simpleSettings);
+    }
+    if (document.getElementById('explorerChartType')) {
+        new TomSelect("#explorerChartType", simpleSettings);
     }
 }
 

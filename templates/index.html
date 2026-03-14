@@ -441,7 +441,7 @@
                 </div>
 
                 <!-- BAR CHART RACE -->
-                <div class="row mt-4 mb-5">
+                <div class="row mt-4 mb-4">
                     <div class="col-12">
                         <div class="chart-card">
                             <div class="chart-header flex-wrap gap-3">
@@ -473,6 +473,56 @@
                                 <canvas id="barRaceChart"></canvas>
                                 <div class="loader-overlay" id="loader-race">
                                     <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA EXPLORER TOOL -->
+                <div class="row mt-4 mb-5">
+                    <div class="col-12">
+                        <div class="chart-card">
+                            <div class="chart-header flex-wrap gap-3">
+                                <div>
+                                    <h5 class="chart-title mb-0">Data Explorer</h5>
+                                    <small class="text-muted">Generate custom analytics dynamically</small>
+                                </div>
+                                <div class="d-flex gap-2 align-items-center flex-wrap w-100 mt-2">
+                                    <select id="explorerCountry" class="form-select form-select-sm rounded-pill px-3"
+                                        style="min-width: 150px;">
+                                        <option value="All" selected>Global Overview</option>
+                                    </select>
+                                    <select id="explorerMetric" class="form-select form-select-sm rounded-pill px-3"
+                                        style="min-width: 150px;">
+                                        <option value="Confirmed Cases" selected>Confirmed Cases</option>
+                                        <option value="Deaths">Deaths</option>
+                                        <option value="Recovered">Recovered</option>
+                                    </select>
+                                    <select id="explorerAggregation"
+                                        class="form-select form-select-sm rounded-pill px-3" style="min-width: 150px;">
+                                        <option value="daily" selected>Daily</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                    <select id="explorerChartType" class="form-select form-select-sm rounded-pill px-3"
+                                        style="min-width: 150px;">
+                                        <option value="line" selected>Line Chart</option>
+                                        <option value="bar">Bar Chart</option>
+                                    </select>
+                                    <button id="explorerBtn" class="btn btn-primary btn-sm rounded-pill px-3">
+                                        <i class="fas fa-chart-pie me-1"></i> Run Analysis
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrapper" style="height: 400px;">
+                                <canvas id="explorerChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-explorer">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                                <div id="explorerPlaceholder"
+                                    class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+                                    <i class="fas fa-search-chart fa-3x mb-3 opacity-25"></i>
+                                    <p>Select filters and click "Run Analysis" to explore data</p>
                                 </div>
                             </div>
                         </div>

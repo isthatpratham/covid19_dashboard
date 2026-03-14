@@ -615,6 +615,21 @@ body.dark-mode .chart-header .form-select {
     /* Chart.js handles its own animation */
 }
 
+/* --- Data Explorer Specific Styles --- */
+#explorerPlaceholder {
+    transition: opacity 0.3s ease;
+}
+
+#explorerPlaceholder.hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+    display: none !important;
+}
+
+#explorerChart {
+    display: block;
+}
+
 /* --- Key Insights Panel Styles --- */
 .insight-panel-card {
     border-left: 4px solid var(--warning);
