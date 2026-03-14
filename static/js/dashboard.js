@@ -17,15 +17,12 @@ const chartColors = {
 // Global State
 let dashboardData = {};
 let chartInstances = {};
-let selectedStartDate = '';
-let selectedEndDate = '';
 let currentCountry = 'All';
 const isDark = () => document.body.classList.contains('dark-mode');
 
 document.addEventListener("DOMContentLoaded", () => {
     initLayout();
     initTheme();
-    initDateFilter();
     initComparisonTool();
     initExportTools();
     loadDashboardData();
@@ -171,28 +168,6 @@ function populateCountryFilter() {
     initTomSelects();
 }
 
-function initDateFilter() {
-    const startInput = document.getElementById('startDate');
-    const endInput = document.getElementById('endDate');
-    const resetBtn = document.getElementById('resetDates');
-
-    const handleDateChange = () => {
-        selectedStartDate = startInput.value;
-        selectedEndDate = endInput.value;
-        updateDashboard(currentCountry);
-    };
-
-    startInput.addEventListener('change', handleDateChange);
-    endInput.addEventListener('change', handleDateChange);
-
-    resetBtn.addEventListener('click', () => {
-        startInput.value = '';
-        endInput.value = '';
-        selectedStartDate = '';
-        selectedEndDate = '';
-        updateDashboard(currentCountry);
-    });
-}
 
 function initComparisonTool() {
     const compareBtn = document.getElementById('compareBtn');
@@ -284,8 +259,6 @@ function getQueryString(country = null) {
     const c = country || currentCountry;
 
     if (c !== 'All') params.append('country', c);
-    if (selectedStartDate) params.append('start', selectedStartDate);
-    if (selectedEndDate) params.append('end', selectedEndDate);
 
     const qs = params.toString();
     return qs ? `?${qs}` : '';
@@ -433,10 +406,6 @@ async function runDataExplorerAnalysis() {
         if (country !== 'All') queryParams.append('country', country);
         queryParams.append('metric', metric);
         queryParams.append('aggregation', aggregation);
-
-        // Respect global date filters if set
-        if (selectedStartDate) queryParams.append('start', selectedStartDate);
-        if (selectedEndDate) queryParams.append('end', selectedEndDate);
 
         const url = `/api/custom-analysis?${queryParams.toString()}`;
 

@@ -32,9 +32,6 @@ function loadSettings() {
     const animations = localStorage.getItem('chart_animations') !== 'false'; // Default true
     document.getElementById('chartAnimationSwitch').checked = animations;
 
-    // Default Date Range
-    const savedRange = localStorage.getItem('default_date_range') || 'all_time';
-    document.getElementById('defaultDateRange').value = savedRange;
 }
 
 function initSettingsListeners() {
@@ -60,10 +57,6 @@ function initSettingsListeners() {
         localStorage.setItem('chart_animations', e.target.checked);
     });
 
-    // Date Range
-    document.getElementById('defaultDateRange').addEventListener('change', (e) => {
-        localStorage.setItem('default_date_range', e.target.value);
-    });
 
     // Reset Settings
     document.getElementById('resetSettings').addEventListener('click', () => {
