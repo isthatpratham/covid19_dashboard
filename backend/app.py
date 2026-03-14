@@ -322,6 +322,47 @@ def global_stats():
         "recovery_rate": round(recovery, 2)
     })
 
+@app.route('/country-analytics')
+def country_analytics():
+    return render_template('country_analytics.html')
+
+@app.route('/api/country-data', methods=['GET'])
+def country_data():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    country = request.args.get('country')
+    if not country: return jsonify([])
+    
+    filtered = df[df['country'] == country].sort_values('date')
+    if filtered.empty: return jsonify([])
+    
+    # Calculate KPIs for the country
+    total_cases = int(filtered['confirmed_cases'].max())
+    total_deaths = int(filtered['deaths'].max())
+    total_recovered = int(filtered['recovered'].max())
+    
+    mortality_rate = round((total_deaths / total_cases * 100), 2) if total_cases > 0 else 0
+    recovery_rate = round((total_recovered / total_cases * 100), 2) if total_cases > 0 else 0
+    
+    # Calculate daily growth
+    filtered['growth'] = filtered['confirmed_cases'].diff().fillna(0)
+    
+    return jsonify({
+        "kpis": {
+            "total_cases": total_cases,
+            "total_deaths": total_deaths,
+            "recovery_rate": recovery_rate,
+            "mortality_rate": mortality_rate
+        },
+        "trends": {
+            "dates": filtered['date'].astype(str).tolist(),
+            "cases": filtered['confirmed_cases'].tolist(),
+            "deaths": filtered['deaths'].tolist(),
+            "recovered": filtered['recovered'].tolist(),
+            "growth": filtered['growth'].tolist()
+        }
+    })
+
 @app.route('/')
 def index():
     return render_template('index.html')

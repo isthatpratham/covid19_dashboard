@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Overview | COVID-19 Analytics Pro</title>
+    <title>Country Analytics | COVID-19 Analytics Pro</title>
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -15,6 +15,8 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Tom Select -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -42,13 +44,13 @@
                     </a>
                 </li>
                 <li class="menu-item">
-                    <a href="/global-overview" class="menu-link active">
+                    <a href="/global-overview" class="menu-link">
                         <i class="fas fa-globe"></i>
                         <span>Global Overview</span>
                     </a>
                 </li>
                 <li class="menu-item">
-                    <a href="/country-analytics" class="menu-link" data-view="country">
+                    <a href="/country-analytics" class="menu-link active">
                         <i class="fas fa-flag"></i>
                         <span>Country Analytics</span>
                     </a>
@@ -84,7 +86,7 @@
                     </button>
                     <div class="search-wrapper">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="globalSearch" placeholder="Search global data...">
+                        <input type="text" id="globalSearch" placeholder="Search country data...">
                     </div>
                 </div>
 
@@ -99,11 +101,18 @@
                 </div>
             </nav>
 
-            <!-- GLOBAL OVERVIEW CONTENT -->
+            <!-- COUNTRY ANALYTICS CONTENT -->
             <div class="dashboard-container">
-                <div class="page-header">
-                    <h1 class="page-title">Global Overview</h1>
-                    <p class="text-muted">Global pandemic analytics and worldwide statistics</p>
+                <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h1 class="page-title">Country Analytics</h1>
+                        <p class="text-muted">Explore in-depth COVID-19 statistics for a specific country</p>
+                    </div>
+                    <div class="country-selector-wrapper" style="min-width: 300px;">
+                        <select id="countrySelector" placeholder="Select a country...">
+                            <option value="">Select a country...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- KPI CARDS -->
@@ -111,11 +120,11 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="stats-card card-primary">
                             <div class="stats-icon-wrapper">
-                                <i class="fas fa-globe"></i>
+                                <i class="fas fa-check-circle"></i>
                             </div>
                             <div class="stats-info">
-                                <p class="stats-label">Total Global Cases</p>
-                                <h3 class="stats-value counter" id="global-confirmed">0</h3>
+                                <p class="stats-label">Total Cases</p>
+                                <h3 class="stats-value counter" id="country-confirmed">0</h3>
                             </div>
                         </div>
                     </div>
@@ -125,8 +134,8 @@
                                 <i class="fas fa-skull"></i>
                             </div>
                             <div class="stats-info">
-                                <p class="stats-label">Total Global Deaths</p>
-                                <h3 class="stats-value counter" id="global-deaths">0</h3>
+                                <p class="stats-label">Total Deaths</p>
+                                <h3 class="stats-value counter" id="country-deaths">0</h3>
                             </div>
                         </div>
                     </div>
@@ -136,8 +145,8 @@
                                 <i class="fas fa-heartbeat"></i>
                             </div>
                             <div class="stats-info">
-                                <p class="stats-label">Global Recovery Rate</p>
-                                <h3 class="stats-value" id="global-recovery-rate">0.00%</h3>
+                                <p class="stats-label">Recovery Rate</p>
+                                <h3 class="stats-value" id="country-recovery-rate">0.00%</h3>
                             </div>
                         </div>
                     </div>
@@ -147,89 +156,82 @@
                                 <i class="fas fa-percentage"></i>
                             </div>
                             <div class="stats-info">
-                                <p class="stats-label">Global Mortality Rate</p>
-                                <h3 class="stats-value" id="global-mortality-rate">0.00%</h3>
+                                <p class="stats-label">Mortality Rate</p>
+                                <h3 class="stats-value" id="country-mortality-rate">0.00%</h3>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- CHARTS GRID -->
-                <div class="row g-4">
-                    <!-- Global Cases Over Time -->
+                <div id="chartsContainer" class="row g-4 hidden">
+                    <!-- Cases Trend -->
                     <div class="col-xl-6">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h5 class="chart-title">Global Cases Over Time</h5>
+                                <h5 class="chart-title">Cases Trend Over Time</h5>
                             </div>
                             <div class="chart-canvas-wrapper">
-                                <canvas id="globalCasesChart"></canvas>
-                                <div class="loader-overlay" id="loader-global-cases">
+                                <canvas id="countryCasesChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-cases">
                                     <div class="spinner-border text-primary" role="status"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Global Deaths Over Time -->
+                    <!-- Deaths Trend -->
                     <div class="col-xl-6">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h5 class="chart-title">Global Deaths Over Time</h5>
+                                <h5 class="chart-title">Deaths Trend Over Time</h5>
                             </div>
                             <div class="chart-canvas-wrapper">
-                                <canvas id="globalDeathsChart"></canvas>
-                                <div class="loader-overlay" id="loader-global-deaths">
+                                <canvas id="countryDeathsChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-deaths">
                                     <div class="spinner-border text-danger" role="status"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Global Recovery Trend -->
+                    <!-- Recovery Trend -->
                     <div class="col-xl-6">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h5 class="chart-title">Global Recovery Trend</h5>
+                                <h5 class="chart-title">Recovery Trend</h5>
                             </div>
                             <div class="chart-canvas-wrapper">
-                                <canvas id="globalRecoveryChart"></canvas>
-                                <div class="loader-overlay" id="loader-global-recovery">
+                                <canvas id="countryRecoveryChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-recovery">
                                     <div class="spinner-border text-success" role="status"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Top 10 Countries Cases -->
+                    <!-- Growth Rate -->
                     <div class="col-xl-6">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h5 class="chart-title">Top 10 Countries by Confirmed Cases</h5>
+                                <h5 class="chart-title">Daily Growth Rate</h5>
                             </div>
                             <div class="chart-canvas-wrapper">
-                                <canvas id="topCountriesCasesChart"></canvas>
-                                <div class="loader-overlay" id="loader-top-cases">
-                                    <div class="spinner-border text-warning" role="status"></div>
+                                <canvas id="countryGrowthChart"></canvas>
+                                <div class="loader-overlay hidden" id="loader-growth">
+                                    <div class="spinner-border text-info" role="status"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Top 10 Countries Deaths -->
-                    <div class="col-xl-6">
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h5 class="chart-title">Top 10 Countries by Total Deaths</h5>
-                            </div>
-                            <div class="chart-canvas-wrapper">
-                                <canvas id="topCountriesDeathsChart"></canvas>
-                                <div class="loader-overlay" id="loader-top-deaths">
-                                    <div class="spinner-border text-secondary" role="status"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Selection Placeholder -->
+                <div id="selectionPlaceholder"
+                    class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                    <i class="fas fa-map-marked-alt fa-4x mb-3 opacity-25"></i>
+                    <h4>Please select a country to view analytics</h4>
+                    <p>Use the dropdown above to search and select a country.</p>
                 </div>
             </div>
 
@@ -242,26 +244,12 @@
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='js/global_overview.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ url_for('static', filename='js/country_analytics.js') }}"></script>
 
     <style>
-        .loader-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(var(--bg-main-rgb), 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            transition: opacity 0.3s;
-        }
-
-        .loader-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
+        .hidden {
+            display: none !important;
         }
     </style>
 </body>
