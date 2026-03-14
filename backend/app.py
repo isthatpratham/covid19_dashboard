@@ -363,6 +363,87 @@ def country_data():
         }
     })
 
+@app.route('/trends')
+def trends():
+    return render_template('trends.html')
+
+@app.route('/api/monthly-trend', methods=['GET'])
+def get_monthly_trend():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+    df['month'] = df['date'].dt.strftime('%Y-%m')
+    
+    # Global monthly accumulation (max cases per month globally)
+    monthly = df.groupby('month')['confirmed_cases'].sum().reset_index().sort_values('month')
+    return jsonify({
+        "labels": monthly['month'].tolist(),
+        "cases": monthly['confirmed_cases'].tolist()
+    })
+
+@app.route('/api/growth-rate', methods=['GET'])
+def get_growth_rate():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    
+    global_daily = df.groupby('date')['confirmed_cases'].sum().reset_index().sort_values('date')
+    global_daily['daily_new'] = global_daily['confirmed_cases'].diff().fillna(0)
+    # Volatility / percentage growth
+    global_daily['growth_rate'] = (global_daily['daily_new'] / global_daily['confirmed_cases'].shift(1) * 100).fillna(0)
+    
+    # Filter out extreme outliers (e.g. data corrections)
+    global_daily.loc[global_daily['growth_rate'] > 100, 'growth_rate'] = 0
+    
+    return jsonify({
+        "labels": global_daily['date'].astype(str).tolist(),
+        "growth_rate": global_daily['growth_rate'].tolist()
+    })
+
+@app.route('/api/moving-average', methods=['GET'])
+def get_moving_average():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    
+    global_daily = df.groupby('date').agg({
+        'confirmed_cases': 'sum',
+        'deaths': 'sum'
+    }).reset_index().sort_values('date')
+    
+    global_daily['new_cases'] = global_daily['confirmed_cases'].diff().fillna(0)
+    global_daily['new_deaths'] = global_daily['deaths'].diff().fillna(0)
+    
+    global_daily['ma_cases'] = global_daily['new_cases'].rolling(window=7).mean().fillna(0)
+    global_daily['ma_deaths'] = global_daily['new_deaths'].rolling(window=7).mean().fillna(0)
+    
+    return jsonify({
+        "labels": global_daily['date'].astype(str).tolist(),
+        "ma_cases": global_daily['ma_cases'].tolist(),
+        "ma_deaths": global_daily['ma_deaths'].tolist()
+    })
+
+@app.route('/api/bar-race', methods=['GET'])
+def get_bar_race():
+    df = get_dataframe()
+    if df is None: return jsonify([])
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+    df['month'] = df['date'].dt.strftime('%Y-%m')
+    
+    # Get top 10 countries for each month
+    results = []
+    months = sorted(df['month'].unique())
+    
+    for month in months:
+        month_data = df[df['month'] == month]
+        top_10 = month_data.groupby('country')['confirmed_cases'].max().sort_values(ascending=False).head(10)
+        results.append({
+            "month": month,
+            "data": [{"country": c, "value": v} for c, v in top_10.items()]
+        })
+        
+    return jsonify(results)
+
 @app.route('/')
 def index():
     return render_template('index.html')

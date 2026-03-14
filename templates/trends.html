@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pandemic Trends | COVID-19 Analytics Pro</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <div class="app-wrapper">
+        <!-- SIDEBAR -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrapper">
+                    <div class="logo-icon">
+                        <i class="fas fa-virus-slash"></i>
+                    </div>
+                    <span class="logo-text">COVID-19 Pro</span>
+                </div>
+                <button id="sidebarToggle" class="btn btn-link text-white d-md-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-item">
+                    <a href="/" class="menu-link">
+                        <i class="fas fa-th-large"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/global-overview" class="menu-link">
+                        <i class="fas fa-globe"></i>
+                        <span>Global Overview</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/country-analytics" class="menu-link">
+                        <i class="fas fa-flag"></i>
+                        <span>Country Analytics</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/trends" class="menu-link active">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Trends Analysis</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="#" class="menu-link" data-view="reports">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="#" class="menu-link" data-view="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main class="main-content">
+            <!-- TOP NAVBAR -->
+            <nav class="top-navbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button id="collapseSidebar" class="nav-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="globalSearch" placeholder="Search trends...">
+                    </div>
+                </div>
+
+                <div class="nav-actions">
+                    <button id="themeToggle" class="nav-btn" title="Toggle Dark/Light Mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="nav-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge"></span>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- TRENDS CONTENT -->
+            <div class="dashboard-container">
+                <div class="page-header">
+                    <h1 class="page-title">Pandemic Trends</h1>
+                    <p class="text-muted">Deep-dive into time-series patterns, growth rates, and comparisons</p>
+                </div>
+
+                <!-- CHARTS GRID -->
+                <div class="row g-4">
+                    <!-- Monthly Accumulation Trend -->
+                    <div class="col-xl-6">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h5 class="chart-title">Monthly Accumulation Trend</h5>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="monthlyTrendChart"></canvas>
+                                <div class="loader-overlay" id="loader-monthly">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Growth Rate Volatility -->
+                    <div class="col-xl-6">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h5 class="chart-title">Daily Growth Rate Volatility (%)</h5>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="growthRateChart"></canvas>
+                                <div class="loader-overlay" id="loader-growth">
+                                    <div class="spinner-border text-warning" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Moving Average -->
+                    <div class="col-xl-12">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h5 class="chart-title">Global 7-Day Moving Average (New Cases vs New Deaths)</h5>
+                            </div>
+                            <div class="chart-canvas-wrapper" style="height: 400px;">
+                                <canvas id="movingAverageChart"></canvas>
+                                <div class="loader-overlay" id="loader-ma">
+                                    <div class="spinner-border text-info" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bar Race Chart -->
+                    <div class="col-xl-12">
+                        <div class="chart-card">
+                            <div class="chart-header d-flex justify-content-between align-items-center">
+                                <h5 class="chart-title">Top 10 Countries Race Chart</h5>
+                                <div id="raceTimer" class="badge bg-primary fs-6">Jan 2020</div>
+                            </div>
+                            <div class="chart-canvas-wrapper" style="height: 500px;">
+                                <canvas id="barRaceChart"></canvas>
+                                <div class="loader-overlay" id="loader-race">
+                                    <div class="spinner-border text-danger" role="status"></div>
+                                </div>
+                            </div>
+                            <div class="chart-footer px-3 pb-3">
+                                <div class="d-flex gap-2">
+                                    <button id="racePlay" class="btn btn-primary btn-sm"><i
+                                            class="fas fa-play me-1"></i> Play</button>
+                                    <button id="racePause" class="btn btn-secondary btn-sm" disabled><i
+                                            class="fas fa-pause me-1"></i> Pause</button>
+                                    <button id="raceRestart" class="btn btn-outline-secondary btn-sm"><i
+                                            class="fas fa-redo me-1"></i> Restart</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer mt-auto py-3 text-center border-top bg-card text-muted small">
+                &copy; 2026 COVID-19 Surveillance Dashboard. Professional Analytics Edition.
+            </footer>
+        </main>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/trends.js') }}"></script>
+</body>
+
+</html>
