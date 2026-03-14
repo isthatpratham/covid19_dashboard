@@ -61,7 +61,7 @@ body.dark-mode {
 }
 
 body.dark-mode .text-muted {
-    color: #ffffff !important;
+    color: var(--text-muted) !important;
 }
 
 * {
@@ -796,4 +796,40 @@ body.dark-mode .insight-text {
 .loader-overlay.hidden {
     opacity: 0;
     pointer-events: none;
+}
+
+/* --- Reports Page Dark Mode Fixes --- */
+body.dark-mode .report-summary-header {
+    background-color: #1f2937 !important;
+    color: #e5e7eb !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+body.dark-mode .report-badge {
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+body.dark-mode .summary-report .bg-light {
+    background-color: #111827 !important;
+    border: 1px solid #1f2937 !important;
+    color: #e5e7eb !important;
+}
+
+body.dark-mode .summary-report h5,
+body.dark-mode .summary-report h6,
+body.dark-mode .summary-report p,
+body.dark-mode .summary-report li {
+    color: #e5e7eb !important;
+}
+
+body.dark-mode .summary-report .alert-warning {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+body.dark-mode .summary-report .alert-warning i {
+    color: #fbbf24 !important;
 }
